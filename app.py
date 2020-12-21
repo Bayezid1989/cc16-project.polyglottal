@@ -11,6 +11,7 @@ from linebot.models import (
     MessageEvent, TextMessage, TextSendMessage,
 )
 from google.cloud import datastore
+from dotenv import load_dotenv
 import config
 import datetime
 import os
