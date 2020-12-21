@@ -42,20 +42,28 @@ def callback():
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    user_id = event.source.user_id
-    user_key = client.key("UserTable", user_id) # kindとidを引数にKeyを取得
-    user_entity = client.get(user_key) # Keyを引数にEntityを取得
-    if user_entity is None:
-        user_entity = datastore.Entity(key=user_key, exclude_from_indexes=("timestamp",))
-        msg = "はじめまして！"
+    print(event)
+    if event.message.text == "Hi":
+        msg = "How's it going?"
+    elif event.message.text == "Good, you?":
+        msg = "Pretty good, man. Thanks"
     else:
-        timestamp = user_entity["timestamp"]
-        ts = datetime.datetime.fromtimestamp(timestamp/1000)
-        msg = "{}年{}月{}日{}時{}分以来ですね！".format(ts.year, ts.month, ts.day, ts.hour, ts.minute)
-    user_entity.update({ # Entityの更新
-        "timestamp": event.timestamp
-    })
-    client.put(user_entity) # 引数のEntityをDatastoreに保存
+        msg = "I don't know."
+        
+    # user_id = event.source.user_id
+    # user_key = client.key("UserTable", user_id) # kindとidを引数にKeyを取得
+    # user_entity = client.get(user_key) # Keyを引数にEntityを取得
+    # if user_entity is None:
+    #     user_entity = datastore.Entity(key=user_key, exclude_from_indexes=("timestamp",))
+    #     msg = "はじめまして！"
+    # else:
+    #     timestamp = user_entity["timestamp"]
+    #     ts = datetime.datetime.fromtimestamp(timestamp/1000)
+    #     msg = "{}年{}月{}日{}時{}分以来ですね！".format(ts.year, ts.month, ts.day, ts.hour, ts.minute)
+    # user_entity.update({ # Entityの更新
+    #     "timestamp": event.timestamp
+    # })
+    # client.put(user_entity) # 引数のEntityをDatastoreに保存
     line_bot_api.reply_message(
         event.reply_token,
         TextSendMessage(text=msg))
