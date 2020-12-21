@@ -18,8 +18,8 @@ import os
 app = Flask(__name__)
 log = create_logger(app)
 client = datastore.Client()
-line_bot_api = LineBotApi(config.token)
-handler = WebhookHandler(config.secret)
+line_bot_api = LineBotApi(config._LINE_TOKEN)
+handler = WebhookHandler(config._LINE_SECRET)
 
 @app.route("/callback", methods=['POST'])
 def callback():
