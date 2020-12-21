@@ -1,2 +1,0 @@
-token = "jfvAoWIjEwx8ga0yqKKAA9qfF6f9HPQnGaDIBQvLKw7OktHIuWlBr9svcXmltNVVhEDqRIULEcmr0J8wj6FcXE/bMqmkO4zBprLGgPp+K5K8MNnZFzdTsow0aP/HGv5W19kqaaUCwwLLCHJo3ZBvbAdB04t89/1O/w1cDnyilFU="
-secret = "dbff530175757719013a4da9930745fd"
