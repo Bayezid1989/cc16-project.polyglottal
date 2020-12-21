@@ -43,7 +43,7 @@ def callback():
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_id = event.source.user_id
-    user_key = client.key("TestTable", user_id) # kindとidを引数にKeyを取得
+    user_key = client.key("UserTable", user_id) # kindとidを引数にKeyを取得
     user_entity = client.get(user_key) # Keyを引数にEntityを取得
     if user_entity is None:
         user_entity = datastore.Entity(key=user_key, exclude_from_indexes=("timestamp",))
