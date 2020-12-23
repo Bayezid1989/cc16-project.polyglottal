@@ -21,7 +21,7 @@
     "yes": "Yes!",
     "dateTime": "Date / Time",
     "reason": "Reason",
-    "absenceSent": "Absence notice was submitted.",
+    "absenceSent": "Absence notice has been sent!",
     "proceedTardiness": "Choose the time how much late or date / time to come to school.",
     "1h": "Today, within 1hour",
     "noon": "Today, after lunch",
@@ -29,6 +29,8 @@
     "proceedLeave_early": "Choose the time how much early or date / time to leave school.",
     "1hLeave": "Today, about 1 hour early",
     "noonLeave": "Today, around noon",
-    "tardinessSent": "Tardiness notice was submitted. Please take your child to school.",
-    "leave_earlySent": "Leave early notice was submitted. Please come to shcool and take your child home."
+    "tardinessSent": "Tardiness notice has been sent! Please take your child to school.",
+    "leave_earlySent": "Leave early notice has been sent! Please come to shcool and take your child home.",
+    "underConstruction": "Sorry, this is under construction now. Can you restart again?",
+    "bug": "Oops! Sorry, something went wrong so I just canceled. Can you restart again?"
 }
