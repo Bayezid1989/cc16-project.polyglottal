@@ -71,6 +71,7 @@ def handle_message(event):
             "child_name": "",
             "grade": -1,
             "class": -1,
+            "previous_message": "register_language",
             "timestamp": event.timestamp,
         })
         client.put(user)
@@ -82,18 +83,24 @@ def handle_message(event):
             alt_text='Confirm language', template=confirm_template)
         line_bot_api.reply_message(event.reply_token, template_message)
 
-    elif (user["child_name"] == "") and (event.message.text in ["日本語", "English"]):
+    elif (user["previous_message"] == "register_language") and (event.message.text in ["日本語", "English"]):
         if event.message.text == "English":
             with client.transaction():
                 user["isEnglish"] = True
+                user["previous_message"] = "childName"
                 client.put(user)
             words = english_words
+        else:
+            with client.transaction():
+                user["previous_message"] = "childName"
+                client.put(user)
         line_bot_api.reply_message(
             event.reply_token,
             TextSendMessage(text=words["childName"]))
-    elif user["child_name"] == "":
+    elif user["previous_message"] == "childName":
         with client.transaction():
             user["child_name"] = event.message.text
+            user["previous_message"] = "grade"
             client.put(user)
         line_bot_api.reply_message(
             event.reply_token,
@@ -126,9 +133,10 @@ def handle_message(event):
                                 label="6", text="6"),
                         )
                     ])))
-    elif (user["grade"] == -1) and (event.message.text in ["1", "2", "3", "4", "5", "6"]):
+    elif (user["previous_message"] == "grade") and (event.message.text in ["1", "2", "3", "4", "5", "6"]):
         with client.transaction():
             user["grade"] = int(event.message.text)
+            user["previous_message"] = "class"
             client.put(user)
         line_bot_api.reply_message(
             event.reply_token,
@@ -153,45 +161,16 @@ def handle_message(event):
                                 label="4", text="4"),
                         ),
                     ])))
-    elif (user["class"] == -1) and (event.message.text in ["1", "2", "3", "4"]):
+    elif (user["previous_message"] == "class") and (event.message.text in ["1", "2", "3", "4"]):
         with client.transaction():
             user["class"] = int(event.message.text)
+            user["previous_message"] = "registerCompleted"
             client.put(user)
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(
-                text=words["registerCompleted"],
-                quick_reply=QuickReply(
-                    items=[
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label=words["absence"], text=words["absence"]),
-                            # action=DatetimePickerAction(
-                            #     label=words["absence"], data="absence_date_postback", mode="date")
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label=words["tardiness"], text=words["tardiness"]),
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label=words["leave_early"], text=words["leave_early"]),
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label=words["contact_question"], text=words["contact_question"]),
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label=words["answer_submit"], text=words["answer_submit"]),
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label=words["others"], text=words["others"]),
-                        ),
-                    ])))
+            TextSendMessage(text=words["registerCompleted"]))
 
-    elif (action is None) and (event.message.text in [words["absence"], words["tardiness"], words["leave_early"]]):
+    elif (action is None) and (event.message.text in rich_menu[0:3]):
         if event.message.text == words["absence"]:
             category = "absence"
         elif event.message.text == words["tardiness"]:
@@ -205,17 +184,10 @@ def handle_message(event):
                 "category": category,
                 "when": "",
                 "reason": "",
+                "previous_message": "proceedAbsence"
             }
         )
         client.put(action)
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text=words["askReason"]))
-
-    elif (action is not None) and (action["reason"] == ""):
-        with client.transaction():
-            action["reason"] = event.message.text
-            client.put(action)
         line_bot_api.reply_message(
             event.reply_token,
             TextSendMessage(
@@ -223,23 +195,58 @@ def handle_message(event):
                 quick_reply=QuickReply(
                     items=[
                         QuickReplyButton(
-                            action=PostbackAction(
-                                label=words["today"], data='absence_postback_today', displayText=words["today"]),
+                            action=MessageAction(
+                                label=words["today"], text=words["today"]),
                         ),
                         QuickReplyButton(
                             action=DatetimePickerAction(
-                                label=words["chooseDate"], data="absence_postback_date", mode="date")
+                                label=words["chooseDate"], data='{"key": "absence_time", "value": "date"}', mode="date")
                         ),
                         QuickReplyButton(
                             action=MessageAction(
                                 label=words["cancel"], text=words["cancel"]),
                         ),
                     ])))
-    elif (action is not None) and (event.message.text == words["cancel"]):
-        client.delete(action_key)
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text=words["cancelDone"]))
+
+    elif (action is not None):
+        if (action["previous_message"] == "proceedAbsence") and (event.message.text == words["today"]):
+            today = str(datetime.date.today())
+            with client.transaction():
+                action["when"] = today
+                action["previous_message"] = "askReason"
+            client.put(action)
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text=words["askReason"]))
+        elif action["previous_message"] == "askReason":
+            with client.transaction():
+                action["reason"] = event.message.text
+                action["previous_message"] = "absenceConfirm"
+                client.put(action)
+            absenceConfirm = words["absenceConfirm"]
+            dateTimeKey = words["dateTime"]
+            whenValue = action["when"]
+            reasonKey = words["reason"]
+            reasonValue = action["reason"]
+            confirm_template = ConfirmTemplate(text=f"{absenceConfirm} {dateTimeKey}: {whenValue}, {reasonKey}: {reasonValue}", actions=[
+                MessageAction(
+                    label=words["yes"], text=words["yes"]),
+                MessageAction(
+                    label=words["cancel"], text=words["cancel"]),
+            ])
+            template_message = TemplateSendMessage(
+                alt_text='Confirm absence', template=confirm_template)
+            line_bot_api.reply_message(event.reply_token, template_message)
+
+        elif (action["previous_message"] == "absenceConfirm") and (event.message.text == words["yes"]):
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text="absence_execte_postback"))
+        elif event.message.text == words["cancel"]:
+            client.delete(action_key)
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text=words["cancelDone"]))
     elif event.message.text == "Delete":
         client.delete(user_key)
         line_bot_api.reply_message(
@@ -248,35 +255,7 @@ def handle_message(event):
     else:
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(
-                text=words["feelFree"],
-                quick_reply=QuickReply(
-                    items=[
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label=words["absence"], text=words["absence"]),
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label=words["tardiness"], text=words["tardiness"]),
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label=words["leave_early"], text=words["leave_early"]),
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label=words["contact_question"], text=words["contact_question"]),
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label=words["answer_submit"], text=words["answer_submit"]),
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label=words["others"], text=words["others"]),
-                        ),
-                    ])))
+            TextSendMessage(text="I don't know."))
 
 
 @ handler.add(PostbackEvent)
@@ -291,33 +270,15 @@ def handle_postback(event):
         words = english_words
     else:
         words = japanese_words
-    if event.postback.data[0:17] == "absence_postback_":
-        if event.postback.data == "absence_postback_today":
-            print("not yet done")
-        elif event.postback.data == "absence_postback_date":
-            when = event.postback.params['date']
+    if json.loads(event.postback.data)["key"] == "absence_time":
         with client.transaction():
-            action["when"] = when
+            action["when"] = event.postback.params['date']
+            action["previous_message"] = "askReason"
             client.put(action)
-        absenceConfirm = words["absenceConfirm"]
-        dateTimeKey = words["dateTime"]
-        whenValue = action["when"]
-        reasonKey = words["reason"]
-        reasonValue = action["reason"]
-        confirm_template = ConfirmTemplate(text=f"{absenceConfirm} --- {dateTimeKey}: {whenValue}, {reasonKey}: {reasonValue}", actions=[
-            PostbackAction(
-                label=words["yes"], data="absence_execte_postback", displayText=words["yes"]),
-            MessageAction(
-                label=words["cancel"], text=words["cancel"]),
-        ])
-        template_message = TemplateSendMessage(
-            alt_text='Confirm absence', template=confirm_template)
-        line_bot_api.reply_message(event.reply_token, template_message)
-
-    elif event.postback.data == "absence_execte_postback":
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(text="absence_execte_postback"))
+            TextSendMessage(text=words["askReason"]))
+
         # elif event.postback.data == 'datetime_postback':
         #     line_bot_api.reply_message(
         #         event.reply_token, TextSendMessage(text=event.postback.params['datetime']))
