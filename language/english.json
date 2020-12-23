@@ -1,7 +1,7 @@
 {
     "childName": "Tell me your child's full name.",
     "grade": "Tell me which grade your child is in.",
-    "class": "Tell me which class your child is in.",
+    "classroom": "Tell me which class your child is in.",
     "registerCompleted": "Registration completed! Feel free to play around with the menu below.",
     "feelFree": "Feel free to play around!",
     "contact_question": "Contact, Question",

@@ -138,12 +138,12 @@ def handle_message(event):
     elif (user["previous_message"] == "grade") and (event.message.text in ["1", "2", "3", "4", "5", "6"]):
         with client.transaction():
             user["grade"] = int(event.message.text)
-            user["previous_message"] = "class"
+            user["previous_message"] = "classroom"
             client.put(user)
         line_bot_api.reply_message(
             event.reply_token,
             TextSendMessage(
-                text=words["class"],
+                text=words["classroom"],
                 quick_reply=QuickReply(
                     items=[
                         QuickReplyButton(
@@ -162,10 +162,14 @@ def handle_message(event):
                             action=MessageAction(
                                 label="4", text="4"),
                         ),
+                        QuickReplyButton(
+                            action=MessageAction(
+                                label="5", text="5"),
+                        ),
                     ])))
-    elif (user["previous_message"] == "class") and (event.message.text in ["1", "2", "3", "4"]):
+    elif (user["previous_message"] == "classroom") and (event.message.text in ["1", "2", "3", "4", "5"]):
         with client.transaction():
-            user["class"] = int(event.message.text)
+            user["classroom"] = int(event.message.text)
             user["previous_message"] = "registerCompleted"
             client.put(user)
         line_bot_api.reply_message(
