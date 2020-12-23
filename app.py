@@ -175,11 +175,11 @@ def handle_message(event):
     elif (action is None) and (event.message.text in rich_menu[0:3]):
         print(rich_menu[0:3])
         if event.message.text == rich_menu[0]:
-            category = "absence"
+            category = "Absence"
         elif event.message.text == rich_menu[1]:
-            category = "tardiness"
+            category = "Tardiness"
         else:
-            category = "leave_early"
+            category = "Leave_early"
         action_key = client.key("ActionKind", user_id)
         action = datastore.Entity(key=action_key)
         action.update(
@@ -187,29 +187,78 @@ def handle_message(event):
                 "category": category,
                 "when": "",
                 "reason": "",
-                "previous_message": "proceedAbsence"
+                "previous_message": f"proceed{category}"
             }
         )
         client.put(action)
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(
-                text=words["proceedAbsence"],
-                quick_reply=QuickReply(
-                    items=[
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label=words["today"], text=words["today"]),
-                        ),
-                        QuickReplyButton(
-                            action=DatetimePickerAction(
-                                label=words["chooseDate"], data='{"key": "absence_time", "value": "date"}', mode="date")
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label=words["cancel"], text=words["cancel"]),
-                        ),
-                    ])))
+        if event.message.text == rich_menu[0]:
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(
+                    text=words["proceedAbsence"],
+                    quick_reply=QuickReply(
+                        items=[
+                            QuickReplyButton(
+                                action=MessageAction(
+                                    label=words["today"], text=words["today"]),
+                            ),
+                            QuickReplyButton(
+                                action=DatetimePickerAction(
+                                    label=words["chooseDate"], data='{"key": "absence_time", "value": "date"}', mode="date")
+                            ),
+                            QuickReplyButton(
+                                action=MessageAction(
+                                    label=words["cancel"], text=words["cancel"]),
+                            ),
+                        ])))
+        elif event.message.text == rich_menu[1]:
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(
+                    text=words["proceedTardiness"],
+                    quick_reply=QuickReply(
+                        items=[
+                            QuickReplyButton(
+                                action=MessageAction(
+                                    label=words["1h"], text=words["1h"]),
+                            ),
+                            QuickReplyButton(
+                                action=MessageAction(
+                                    label=words["noon"], text=words["noon"]),
+                            ),
+                            QuickReplyButton(
+                                action=DatetimePickerAction(
+                                    label=words["chooseDateTime"], data='{"key": "tardiness_time", "value": "time"}', mode="datetime")
+                            ),
+                            QuickReplyButton(
+                                action=MessageAction(
+                                    label=words["cancel"], text=words["cancel"]),
+                            ),
+                        ])))
+        else:
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(
+                    text=words["proceedLeave_early"],
+                    quick_reply=QuickReply(
+                        items=[
+                            QuickReplyButton(
+                                action=MessageAction(
+                                    label=words["1hLeave"], text=words["1hLeave"]),
+                            ),
+                            QuickReplyButton(
+                                action=MessageAction(
+                                    label=words["noonLeave"], text=words["noonLeave"]),
+                            ),
+                            QuickReplyButton(
+                                action=DatetimePickerAction(
+                                    label=words["chooseDateTime"], data='{"key": "leave_early_time", "value": "time"}', mode="datetime")
+                            ),
+                            QuickReplyButton(
+                                action=MessageAction(
+                                    label=words["cancel"], text=words["cancel"]),
+                            ),
+                        ])))
 
     elif (action is not None):
         if (action["previous_message"] == "proceedAbsence") and (event.message.text == words["today"]):
@@ -253,6 +302,10 @@ def handle_message(event):
             line_bot_api.reply_message(
                 event.reply_token,
                 TextSendMessage(text=words["cancelDone"]))
+        else:
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text="Under construction now, please command cancel"))
     elif event.message.text == "Delete":
         client.delete(user_key)
         line_bot_api.reply_message(
@@ -288,9 +341,6 @@ def handle_postback(event):
         # elif event.postback.data == 'datetime_postback':
         #     line_bot_api.reply_message(
         #         event.reply_token, TextSendMessage(text=event.postback.params['datetime']))
-        # elif event.postback.data == 'date_postback':
-        #     line_bot_api.reply_message(
-        #         event.reply_token, TextSendMessage(text=event.postback.params['date']))
 
 
 if __name__ == "__main__":

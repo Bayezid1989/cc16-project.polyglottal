@@ -7,8 +7,8 @@
     "contact_question": "Contact, Question",
     "answer_submit": "Answer, Submit",
     "others": "Others",
-    "askReason": "Can you please tell me the reason?",
-    "proceedAbsence": "Please choose the date to be absent.",
+    "askReason": "Can you tell me the reason?",
+    "proceedAbsence": "Choose the date to be absent.",
     "chooseDate": "Choose date",
     "today": "Today",
     "tomorrow": "Tomorrow",
@@ -18,5 +18,12 @@
     "yes": "Yes",
     "dateTime": "Date / Time",
     "reason": "Reason",
-    "absenceSent": "Absence was submitted."
+    "absenceSent": "Absence was submitted.",
+    "proceedTardiness": "Choose the time how much late or date / time to come to school.",
+    "1h": "Today, about 1hour",
+    "noon": "Today, after lunch",
+    "chooseDateTime": "Choose date and time",
+    "proceedLeave_early": "Choose the time how much early or date / time to leave school.",
+    "1hLeave": "Today, about 1 hour early",
+    "noonLeave": "Today, around noon"
 }
