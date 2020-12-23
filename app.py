@@ -70,7 +70,7 @@ def handle_message(event):
             "isEnglish": False,
             "child_name": "",
             "grade": -1,
-            "class": -1,
+            "classroom": -1,
             "previous_message": "register_language",
             "timestamp": event.timestamp,
         })
