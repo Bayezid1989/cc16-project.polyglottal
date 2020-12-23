@@ -23,12 +23,12 @@
     "reason": "理由",
     "absenceSent": "欠席連絡が完了しました。",
     "proceedTardiness": "遅刻する時間か登校日時を選んでください。",
-    "1h": "今日、1時間程度",
+    "1h": "今日、1時間以内",
     "noon": "今日の昼から登校",
     "chooseDateTime": "日時を選ぶ",
     "proceedLeave_early": "早退する時間か下校日時を選んでください。",
     "1hLeave": "今日、1時間程度早く",
     "noonLeave": "今日の昼頃下校",
-    "tardinessSent": "遅刻連絡が完了しました。",
-    "leave_earlySent": "早退連絡が完了しました。"
+    "tardinessSent": "遅刻連絡が完了しました。学校まで付き添いをお願いします。",
+    "leave_earlySent": "早退連絡が完了しました。教室までお迎えをお願いします。"
 }

@@ -18,17 +18,17 @@
     "cancel": "Cancel",
     "cancelDone": "Cancelled.",
     "confirmAbsTarLea": "Are you sure to submit with these information?",
-    "yes": "Yes",
+    "yes": "Yes!",
     "dateTime": "Date / Time",
     "reason": "Reason",
-    "absenceSent": "Absence was submitted.",
+    "absenceSent": "Absence notice was submitted.",
     "proceedTardiness": "Choose the time how much late or date / time to come to school.",
-    "1h": "Today, about 1hour",
+    "1h": "Today, within 1hour",
     "noon": "Today, after lunch",
     "chooseDateTime": "Choose date and time",
     "proceedLeave_early": "Choose the time how much early or date / time to leave school.",
     "1hLeave": "Today, about 1 hour early",
     "noonLeave": "Today, around noon",
-    "tardinessSent": "Tardiness was submitted.",
-    "leave_earlySent": "Leave early was submitted."
+    "tardinessSent": "Tardiness notice was submitted. Please take your child to school.",
+    "leave_earlySent": "Leave early notice was submitted. Please come to shcool and take your child home."
 }
