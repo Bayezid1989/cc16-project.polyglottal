@@ -8,7 +8,15 @@ WORKDIR $APP_HOME
 COPY . .
 
 # Install production dependencies.
-RUN pip install Flask gunicorn line-bot-sdk google-cloud-datastore python_dotenv
+RUN pip install Flask gunicorn line-bot-sdk google-cloud-datastore python_dotenv nltk
+
+# for install wget
+RUN apt-get update && apt-get install -y wget
+
+# for NLTK manual download
+WORKDIR /usr/local/nltk_data/tokenizers
+RUN wget "https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages/tokenizers/punkt.zip" -O punkt.zip
+RUN unzip punkt.zip
 
 # Run the web service on container startup. Here we use the gunicorn
 # webserver, with one worker process and 8 threads.
