@@ -23,7 +23,7 @@ log = create_logger(app)
 client = datastore.Client()
 line_bot_api = LineBotApi(config._LINE_TOKEN)
 handler = WebhookHandler(config._LINE_SECRET)
-email_address = "willard.stamm2@ethereal.email"
+email_address = config.SEND_EMAIL
 
 
 rich_menu = ["欠席 / Absence", "遅刻 / Tardiness", "早退 / Leave early", "連絡、質問 / Contact, Question", "回答、提出 / Answer, Submit", "その他 / Others"
