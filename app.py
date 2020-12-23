@@ -230,11 +230,11 @@ def handle_message(event):
     elif (action is not None):
         if "proceed" in action["previous_message"]:
             if action["previous_message"] == "proceedAbsence":
-                targetDate = str(datetime.date.today())
+                targetDate = datetime.date.today()
                 if event.message.text == words["tomorrow"]:
                     targetDate = targetDate + datetime.timedelta(days=1)
                 with client.transaction():
-                    action["when"] = targetDate
+                    action["when"] = str(targetDate)
                     action["previous_message"] = "askReason_absence"
                 client.put(action)
                 line_bot_api.reply_message(
