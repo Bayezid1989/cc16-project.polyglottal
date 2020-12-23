@@ -8,7 +8,7 @@ EMAIL_ADDRESS = config.EMAIL_USER
 EMAIL_PASSWORD = config.EMAIL_PASS
 
 
-def sendAbsence(child_name, grade, classroom, when, reason, email_address="willard.stamm2@ethereal.email"):
+def sendAbsence(child_name, grade, classroom, when, reason, email_address):
     msg = EmailMessage()
     msg['Subject'] = "Absence Notice"
     msg['From'] = "bayezid1989@live.jp"

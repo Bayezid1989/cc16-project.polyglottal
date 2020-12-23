@@ -4,13 +4,10 @@
     "class": "クラスを教えてください。",
     "registerCompleted": "登録が完了しました！下のメニューからアクションを選んで遊んでみてください。",
     "feelFree": "自由に遊んでみてください。",
-    "absence": "欠席",
-    "tardiness": "遅刻",
-    "leave_early": "早退",
     "contact_question": "連絡、質問",
     "answer_submit": "回答、提出",
     "others": "その他",
-    "askReason": "理由を教えてください。",
+    "askReason": "理由を教えてもらってもいいですか？",
     "proceedAbsence": "欠席する日を選んでください。",
     "chooseDate": "日付を選ぶ",
     "today": "今日",
@@ -20,5 +17,6 @@
     "absenceConfirm": "以下の内容で欠席しますがよろしいですか？",
     "yes": "はい！",
     "dateTime": "日時",
-    "reason": "理由"
+    "reason": "理由",
+    "absenceSent": "欠席申請が完了しました。"
 }

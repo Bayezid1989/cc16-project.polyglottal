@@ -16,12 +16,14 @@ import config
 import datetime
 import os
 import json
+import sendEmail
 
 app = Flask(__name__)
 log = create_logger(app)
 client = datastore.Client()
 line_bot_api = LineBotApi(config._LINE_TOKEN)
 handler = WebhookHandler(config._LINE_SECRET)
+email_address = "willard.stamm2@ethereal.email"
 
 
 rich_menu = ["欠席 / Absence", "遅刻 / Tardiness", "早退 / Leave early", "連絡、質問 / Contact, Question", "回答、提出 / Answer, Submit", "その他 / Others"
@@ -171,9 +173,10 @@ def handle_message(event):
             TextSendMessage(text=words["registerCompleted"]))
 
     elif (action is None) and (event.message.text in rich_menu[0:3]):
-        if event.message.text == words["absence"]:
+        print(rich_menu[0:3])
+        if event.message.text == rich_menu[0]:
             category = "absence"
-        elif event.message.text == words["tardiness"]:
+        elif event.message.text == rich_menu[1]:
             category = "tardiness"
         else:
             category = "leave_early"
@@ -239,9 +242,12 @@ def handle_message(event):
             line_bot_api.reply_message(event.reply_token, template_message)
 
         elif (action["previous_message"] == "absenceConfirm") and (event.message.text == words["yes"]):
+            sendEmail.sendAbsence(
+                user["child_name"], user["grade"], user["classroom"], action["when"], action["reason"], email_address)
+            client.delete(action_key)
             line_bot_api.reply_message(
                 event.reply_token,
-                TextSendMessage(text="absence_execte_postback"))
+                TextSendMessage(text=words["absenceSent"]))
         elif event.message.text == words["cancel"]:
             client.delete(action_key)
             line_bot_api.reply_message(

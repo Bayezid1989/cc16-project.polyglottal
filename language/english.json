@@ -1,16 +1,13 @@
 {
     "childName": "Tell me your child's full name.",
     "grade": "Tell me which grade your child is in.",
-    "class": "Tell me which class your child is in",
+    "class": "Tell me which class your child is in.",
     "registerCompleted": "Registration completed! Feel free to play around with the menu below.",
     "feelFree": "Feel free to play around!",
-    "absence": "Absence",
-    "tardiness": "Tardiness",
-    "leave_early": "Leave Early",
     "contact_question": "Contact, Question",
     "answer_submit": "Answer, Submit",
     "others": "Others",
-    "askReason": "Please tell me the reason.",
+    "askReason": "Can you please tell me the reason?",
     "proceedAbsence": "Please choose the date to be absent.",
     "chooseDate": "Choose date",
     "today": "Today",
@@ -20,5 +17,6 @@
     "absenceConfirm": "Are you sure to submit the absence with these information?",
     "yes": "Yes",
     "dateTime": "Date / Time",
-    "reason": "Reason"
+    "reason": "Reason",
+    "absenceSent": "Absence was submitted."
 }
