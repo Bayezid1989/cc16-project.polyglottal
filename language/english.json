@@ -7,6 +7,9 @@
     "contact_question": "Contact, Question",
     "answer_submit": "Answer, Submit",
     "others": "Others",
+    "absence": "Absence",
+    "tardiness": "Tardiness",
+    "leave_early": "Leave_early",
     "askReason": "Can you tell me the reason?",
     "proceedAbsence": "Choose the date to be absent.",
     "chooseDate": "Choose date",
@@ -14,7 +17,7 @@
     "tomorrow": "Tomorrow",
     "cancel": "Cancel",
     "cancelDone": "Cancelled.",
-    "absenceConfirm": "Are you sure to submit the absence with these information?",
+    "confirmAbsTarLea": "Are you sure to submit with these information?",
     "yes": "Yes",
     "dateTime": "Date / Time",
     "reason": "Reason",
@@ -25,5 +28,7 @@
     "chooseDateTime": "Choose date and time",
     "proceedLeave_early": "Choose the time how much early or date / time to leave school.",
     "1hLeave": "Today, about 1 hour early",
-    "noonLeave": "Today, around noon"
+    "noonLeave": "Today, around noon",
+    "tardinessSent": "Tardiness was submitted.",
+    "leave_earlySent": "Leave early was submitted."
 }

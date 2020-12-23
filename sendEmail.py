@@ -8,12 +8,20 @@ EMAIL_ADDRESS = config.EMAIL_USER
 EMAIL_PASSWORD = config.EMAIL_PASS
 
 
-def sendAbsence(child_name, grade, classroom, when, reason, email_address):
+def sendAbsence(child_name, grade, classroom, category, when, reason, email_address):
+    if category == "Absence":
+        emailCategory = "欠席"
+    elif category == "Tardiness":
+        emailCategory = "遅刻"
+    elif category == "Leave_early":
+        emailCategory = "早退"
+    else:
+        emailCategory = "No Category"
     msg = EmailMessage()
-    msg['Subject'] = "Absence Notice"
+    msg['Subject'] = f"{emailCategory} Notice"
     msg['From'] = "bayezid1989@live.jp"
     msg['To'] = email_address
-    msg.set_content("Absence Notice")
+    msg.set_content(f"{emailCategory} Notice")
     msg.add_alternative("""\
         <!DOCTYPE html>
         <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -333,7 +341,7 @@ def sendAbsence(child_name, grade, classroom, when, reason, email_address):
                       <tr>
                         <td style="padding: 0 2.5em; text-align: center; padding-bottom: 3em;">
                           <div class="text">
-                            <h2>欠席連絡です</h2>
+                            <h2>""" + str(emailCategory) + """連絡です</h2>
                           </div>
                         </td>
                       </tr>
@@ -343,8 +351,8 @@ def sendAbsence(child_name, grade, classroom, when, reason, email_address):
                             <img src=https://randomuser.me/api/portraits/lego/5.jpg alt="" style="width: 100px; max-width: 600px; height: auto; margin: auto; display: block;">
                             <h3 class="name">""" + str(child_name) + """さん</h3>
                             <p class="position for-space">""" + str(grade) + """年 """ + str(classroom) + """組</p>
-                            <p class="position for-space">欠席日：""" + str(when) + """</p> 
-                            <p class="position for-space">欠席理由：""" + str(reason) + """</p>
+                            <p class="position for-space">""" + str(emailCategory) + """日時：""" + str(when) + """</p> 
+                            <p class="position for-space">""" + str(emailCategory) + """理由：""" + str(reason) + """</p>
                            </div>
                         </td>
                       </tr>
