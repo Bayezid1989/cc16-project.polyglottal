@@ -15,7 +15,6 @@ def bag_of_words(tokenized_sentence, all_words):
     pass
 
 
-a = "Do you take credit cards?"
-print(a)
-a = tokenize(a)
-print(a)
+a = ["Organize", "organizes"]
+stemWord = [stem(w) for w in a]
+print(stemWord)
