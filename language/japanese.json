@@ -17,11 +17,11 @@
     "tomorrow": "明日",
     "cancel": "やめとく",
     "cancelDone": "取り消しました。",
-    "confirmAbsTarLea": "以下の内容で申請しますがよろしいですか？",
+    "confirmAbsTarLea": "以下の内容で連絡しますがよろしいですか？",
     "yes": "はい！",
     "dateTime": "日時",
     "reason": "理由",
-    "absenceSent": "欠席申請が完了しました。",
+    "absenceSent": "欠席連絡が完了しました。",
     "proceedTardiness": "遅刻する時間か登校日時を選んでください。",
     "1h": "今日、1時間程度",
     "noon": "今日の昼から登校",
@@ -29,6 +29,6 @@
     "proceedLeave_early": "早退する時間か下校日時を選んでください。",
     "1hLeave": "今日、1時間程度早く",
     "noonLeave": "今日の昼頃下校",
-    "tardinessSent": "遅刻申請が完了しました。",
-    "leave_earlySent": "早退申請が完了しました。"
+    "tardinessSent": "遅刻連絡が完了しました。",
+    "leave_earlySent": "早退連絡が完了しました。"
 }
