@@ -342,7 +342,8 @@ def sendAbsence(child_name, grade, classroom, when, reason, email_address):
                           <div class="text-author">
                             <img src=https://randomuser.me/api/portraits/lego/5.jpg alt="" style="width: 100px; max-width: 600px; height: auto; margin: auto; display: block;">
                             <h3 class="name">""" + str(child_name) + """さん</h3>
-                            <p class="position for-space">""" + str(grade) + """年 """ + str(classroom) + """組 欠席日：""" + str(when) + """</p>
+                            <p class="position for-space">""" + str(grade) + """年 """ + str(classroom) + """組</p>
+                            <p class="position for-space">欠席日：""" + str(when) + """</p> 
                             <p class="position for-space">欠席理由：""" + str(reason) + """</p>
                            </div>
                         </td>
