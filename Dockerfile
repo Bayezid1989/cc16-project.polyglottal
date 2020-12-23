@@ -18,6 +18,7 @@ WORKDIR /usr/local/nltk_data/tokenizers
 RUN wget "https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages/tokenizers/punkt.zip" -O punkt.zip
 RUN unzip punkt.zip
 
+WORKDIR $APP_HOME
 # Run the web service on container startup. Here we use the gunicorn
 # webserver, with one worker process and 8 threads.
 # For environments with multiple CPU cores, increase the number of workers
