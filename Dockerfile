@@ -8,7 +8,7 @@ WORKDIR $APP_HOME
 COPY . .
 
 # Install production dependencies.
-RUN pip install Flask gunicorn line-bot-sdk google-cloud-datastore python_dotenv nltk
+RUN pip install Flask gunicorn line-bot-sdk google-cloud-datastore python_dotenv nltk torch
 
 # for install wget
 RUN apt-get update && apt-get install -y wget
