@@ -57,6 +57,19 @@
         ]
       },
       {
+        "tag": "favoriteFood",
+        "patterns": [
+          "What food do you like the best?",
+          "Do you like ramen?",
+          "What kind of cuisine do you like??",
+          "What do you want to eat?"
+        ],
+        "responses": [
+          "Ramen is the best, all the time. Especially 豚骨.",
+          "Oh yeah チャーハン is fanastic. I love なかじま's one in Shibuya."
+        ]
+      },
+      {
         "tag": "delivery",
         "patterns": [
           "How long does delivery take?",
