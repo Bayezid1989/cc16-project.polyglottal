@@ -17,6 +17,7 @@ import datetime
 import os
 import json
 import sendEmail
+from chat import torchBot
 
 app = Flask(__name__)
 log = create_logger(app)
@@ -231,21 +232,21 @@ def handle_message(event):
     elif (action is not None):
         if "proceed" in action["previous_message"]:
             if (action["previous_message"] == "proceedAbsence") and (event.message.text in [words["today"], words["tomorrow"]]):
-                targetDate = datetime.date.today()
+                target_date = datetime.date.today()
                 if event.message.text == words["tomorrow"]:
-                    targetDate = targetDate + datetime.timedelta(days=1)
+                    target_date = target_date + datetime.timedelta(days=1)
                 with client.transaction():
-                    action["when"] = str(targetDate)
+                    action["when"] = str(target_date)
                     action["previous_message"] = "askReason_absence"
                     client.put(action)
                 line_bot_api.reply_message(
                     event.reply_token,
                     TextSendMessage(text=words["askReason"]))
             elif event.message.text in [words["1h"], words["noon"], words["1hLeave"], words["noonLeave"]]:
-                lowerCategory = action["category"].lower()
+                lower_category = action["category"].lower()
                 with client.transaction():
                     action["when"] = event.message.text
-                    action["previous_message"] = f"askReason_{lowerCategory}"
+                    action["previous_message"] = f"askReason_{lower_category}"
                     client.put(action)
                 line_bot_api.reply_message(
                     event.reply_token,
@@ -262,8 +263,8 @@ def handle_message(event):
                 action["previous_message"] = "confirmAbsTarLea"
                 client.put(action)
             confirmAbsTarLea = words["confirmAbsTarLea"]
-            lowerCategory = action["category"].lower()
-            submitType = words[lowerCategory]
+            lower_category = action["category"].lower()
+            submitType = words[lower_category]
             dateTimeKey = words["dateTime"]
             whenValue = action["when"]
             reasonKey = words["reason"]
@@ -279,9 +280,9 @@ def handle_message(event):
         elif (action["previous_message"] == "confirmAbsTarLea") and (event.message.text == words["yes"]):
             sendEmail.sendAbsence(
                 user["child_name"], user["grade"], user["classroom"], action["category"], action["when"], action["reason"], email_address)
-            sentAction_key = client.key("SentActionKind", event.timestamp)
-            sentAction = datastore.Entity(key=sentAction_key)
-            sentAction.update(
+            sent_action_key = client.key("SentActionKind", event.timestamp)
+            sent_action = datastore.Entity(key=sent_action_key)
+            sent_action.update(
                 {
                     "child": user["child_name"],
                     "grade": user["grade"],
@@ -293,10 +294,10 @@ def handle_message(event):
                     "timestamp": event.timestamp,
                 }
             )
-            client.put(sentAction)
+            client.put(sent_action)
             client.delete(action_key)
-            lowerCategory = action["category"].lower()
-            messages = [TextSendMessage(text=words[f"{lowerCategory}Sent"]), StickerSendMessage(
+            lower_category = action["category"].lower()
+            messages = [TextSendMessage(text=words[f"{lower_category}Sent"]), StickerSendMessage(
                 package_id="11538",
                 sticker_id="51626501")]
             line_bot_api.reply_message(event.reply_token, messages)
@@ -374,14 +375,22 @@ def handle_message(event):
                 event.reply_token,
                 TextSendMessage(text="User deleted"))
         else:
-            messages = [TextSendMessage(text="I don't know."), StickerSendMessage(
-                package_id="11537",
-                sticker_id="52002744")]
+            messages = []
+            torch_message = torchBot(event.message.text)
+            messages.append(TextSendMessage(text=torch_message))
+            if "I don't know" in torch_message:
+                messages.append(StickerSendMessage(
+                    package_id="11537",
+                    sticker_id="52002744"))
             line_bot_api.reply_message(event.reply_token, messages)
     else:
-        messages = [TextSendMessage(text="I don't know."), StickerSendMessage(
-            package_id="11537",
-            sticker_id="52002744")]
+        messages = []
+        torch_message = torchBot(event.message.text)
+        messages.append(TextSendMessage(text=torch_message))
+        if "I don't know" in torch_message:
+            messages.append(StickerSendMessage(
+                package_id="11537",
+                sticker_id="52002744"))
         line_bot_api.reply_message(event.reply_token, messages)
 
 
@@ -411,7 +420,7 @@ def handle_postback(event):
             TextSendMessage(text=words["askReason"]))
 
 
-@handler.add(MessageEvent, message=StickerMessage)
+@ handler.add(MessageEvent, message=StickerMessage)
 def handle_sticker_message(event):
     line_bot_api.reply_message(
         event.reply_token,
