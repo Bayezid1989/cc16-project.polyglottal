@@ -8,7 +8,7 @@ from linebot.exceptions import (
     InvalidSignatureError
 )
 from linebot.models import (
-    MessageEvent, MessageAction, TextMessage, TextSendMessage, PostbackEvent, QuickReply, QuickReplyButton, PostbackAction, DatetimePickerAction, ConfirmTemplate, TemplateSendMessage
+    MessageEvent, MessageAction, TextMessage, StickerMessage, TextSendMessage, PostbackEvent, QuickReply, QuickReplyButton, PostbackAction, DatetimePickerAction, ConfirmTemplate, TemplateSendMessage, StickerSendMessage
 )
 from google.cloud import datastore
 from dotenv import load_dotenv
@@ -70,6 +70,7 @@ def handle_message(event):
         user = datastore.Entity(key=user_key)
         user.update({
             "isEnglish": False,
+            "isTeacher": False,
             "child_name": "",
             "grade": -1,
             "classroom": -1,
@@ -172,10 +173,10 @@ def handle_message(event):
             user["classroom"] = int(event.message.text)
             user["previous_message"] = "registerCompleted"
             client.put(user)
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text=words["registerCompleted"]))
-
+        messages = [TextSendMessage(text=words["registerCompleted"]), StickerSendMessage(
+            package_id="11537",
+            sticker_id="52002745")]
+        line_bot_api.reply_message(event.reply_token, messages)
     elif (action is None) and (event.message.text in rich_menu[0:3]):
         if event.message.text == rich_menu[0]:
             category = "Absence"
@@ -229,14 +230,14 @@ def handle_message(event):
             TextSendMessage(text=words["underConstruction"]))
     elif (action is not None):
         if "proceed" in action["previous_message"]:
-            if action["previous_message"] == "proceedAbsence":
+            if (action["previous_message"] == "proceedAbsence") and (event.message.text in [words["today"], words["tomorrow"]]):
                 targetDate = datetime.date.today()
                 if event.message.text == words["tomorrow"]:
                     targetDate = targetDate + datetime.timedelta(days=1)
                 with client.transaction():
                     action["when"] = str(targetDate)
                     action["previous_message"] = "askReason_absence"
-                client.put(action)
+                    client.put(action)
                 line_bot_api.reply_message(
                     event.reply_token,
                     TextSendMessage(text=words["askReason"]))
@@ -245,15 +246,16 @@ def handle_message(event):
                 with client.transaction():
                     action["when"] = event.message.text
                     action["previous_message"] = f"askReason_{lowerCategory}"
-                client.put(action)
+                    client.put(action)
                 line_bot_api.reply_message(
                     event.reply_token,
                     TextSendMessage(text=words["askReason"]))
             else:
                 client.delete(action_key)
-                line_bot_api.reply_message(
-                    event.reply_token,
-                    TextSendMessage(text=words["bug"]))
+                messages = [TextSendMessage(text=words["bug"]), StickerSendMessage(
+                    package_id="11538",
+                    sticker_id="51626499")]
+                line_bot_api.reply_message(event.reply_token, messages)
         elif "askReason" in action["previous_message"]:
             with client.transaction():
                 action["reason"] = event.message.text
@@ -277,11 +279,25 @@ def handle_message(event):
         elif (action["previous_message"] == "confirmAbsTarLea") and (event.message.text == words["yes"]):
             sendEmail.sendAbsence(
                 user["child_name"], user["grade"], user["classroom"], action["category"], action["when"], action["reason"], email_address)
+            sentAction_key = client.key("SentActionKind", event.timestamp)
+            sentAction = datastore.Entity(key=sentAction_key)
+            sentAction.update(
+                {
+                    "child": user["child_name"],
+                    "grade": user["grade"],
+                    "classroom": user["classroom"],
+                    "category": action["category"],
+                    "when": action["when"],
+                    "reason": action["reason"],
+                }
+            )
+            client.put(sentAction)
             client.delete(action_key)
             lowerCategory = action["category"].lower()
-            line_bot_api.reply_message(
-                event.reply_token,
-                TextSendMessage(text=words[f"{lowerCategory}Sent"]))
+            messages = [TextSendMessage(text=words[f"{lowerCategory}Sent"]), StickerSendMessage(
+                package_id="11538",
+                sticker_id="51626501")]
+            line_bot_api.reply_message(event.reply_token, messages)
         elif event.message.text == words["cancel"]:
             client.delete(action_key)
             line_bot_api.reply_message(
@@ -289,18 +305,67 @@ def handle_message(event):
                 TextSendMessage(text=words["cancelDone"]))
         else:
             client.delete(action_key)
+            messages = [TextSendMessage(text=words["bug"]), StickerSendMessage(
+                package_id="11538",
+                sticker_id="51626499")]
+            line_bot_api.reply_message(event.reply_token, messages)
+    elif event.message.text == "Teacher on":
+        with client.transaction():
+            user["isTeacher"] = True
+            user["previous_message"] = "teacherOn"
+            client.put(user)
+        messages = [TextSendMessage(text="先生モード、ON"), StickerSendMessage(
+            package_id="11538",
+            sticker_id="51626514")]
+        line_bot_api.reply_message(event.reply_token, messages)
+    elif user["isTeacher"] == True:
+        if event.message.text == "See users":
+            query = client.query(kind="UserKind")
+            results = list(query.fetch())
+            messages = []
+            for result in results:
+                isEnglish = result["isEnglish"]
+                isTeacher = result["isTeacher"]
+                child_name = result["child_name"]
+                grade = result["grade"]
+                classroom = result["classroom"]
+                timestamp = result["timestamp"]
+                messages.append(TextSendMessage(
+                    text=f"名前：{child_name}、{grade}年 {classroom}組、Is English?:{isEnglish}、先生モード: {isTeacher}、登録timestamp: {timestamp}"))
+            line_bot_api.reply_message(event.reply_token, messages)
+        if event.message.text == "See actions":
+            query = client.query(kind="SentActionKind")
+            results = list(query.fetch())
+            messages = []
+            for result in results:
+                child = result["child"]
+                grade = result["grade"]
+                classroom = result["classroom"]
+                category = result["category"]
+                when = result["when"]
+                reason = result["reason"]
+                messages.append(TextSendMessage(
+                    text=f"子ども: {child}、{grade}年 {classroom}組、内容：{category}、{when}、{reason}"))
+            line_bot_api.reply_message(event.reply_token, messages)
+        elif event.message.text == "Teacher off":
+            with client.transaction():
+                user["isTeacher"] = False
+                user["previous_message"] = "teacherOff"
+                client.put(user)
+            messages = [TextSendMessage(text="先生モード、OFF"), StickerSendMessage(
+                package_id="11538",
+                sticker_id="51626494")]
+            line_bot_api.reply_message(event.reply_token, messages)
+        elif event.message.text == "Delete user":
+            client.delete(user_key)
             line_bot_api.reply_message(
                 event.reply_token,
-                TextSendMessage(text=words["bug"]))
-    elif event.message.text == "Delete":
-        client.delete(user_key)
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text="User deleted"))
+                TextSendMessage(text="User deleted"))
     else:
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text="I don't know."))
+        messages = [TextSendMessage(text="I don't know."), StickerSendMessage(
+            package_id="11537",
+            sticker_id="52002744")]
+        line_bot_api.reply_message(event.reply_token, messages)
 
 
 @ handler.add(PostbackEvent)
@@ -327,6 +392,16 @@ def handle_postback(event):
         line_bot_api.reply_message(
             event.reply_token,
             TextSendMessage(text=words["askReason"]))
+
+
+@handler.add(MessageEvent, message=StickerMessage)
+def handle_sticker_message(event):
+    line_bot_api.reply_message(
+        event.reply_token,
+        StickerSendMessage(
+            package_id="11537",
+            sticker_id="52002753")
+    )
 
 
 if __name__ == "__main__":
