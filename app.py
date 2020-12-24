@@ -226,9 +226,10 @@ def handle_message(event):
                         ),
                     ])))
     elif (action is None) and (event.message.text in rich_menu[3:6]):
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text=words["underConstruction"]))
+        messages = [TextSendMessage(text=words["underConstruction"]), StickerSendMessage(
+            package_id="11538",
+            sticker_id="51626508")]
+        line_bot_api.reply_message(event.reply_token, messages)
     elif (action is not None):
         if "proceed" in action["previous_message"]:
             if (action["previous_message"] == "proceedAbsence") and (event.message.text in [words["today"], words["tomorrow"]]):
@@ -251,6 +252,11 @@ def handle_message(event):
                 line_bot_api.reply_message(
                     event.reply_token,
                     TextSendMessage(text=words["askReason"]))
+            elif event.message.text == words["cancel"]:
+                client.delete(action_key)
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextSendMessage(text=words["cancelDone"]))
             else:
                 client.delete(action_key)
                 messages = [TextSendMessage(text=words["bug"]), StickerSendMessage(
@@ -359,15 +365,6 @@ def handle_message(event):
                 messages.append(TextSendMessage(
                     text=f"子ども: {child}、{grade}年 {classroom}組、内容：{category}、{when}、{reason}、登録日時: {time}"))
             line_bot_api.reply_message(event.reply_token, messages)
-        elif event.message.text == "Teacher off":
-            with client.transaction():
-                user["isTeacher"] = False
-                user["previous_message"] = "teacherOff"
-                client.put(user)
-            messages = [TextSendMessage(text="先生モード、OFF"), StickerSendMessage(
-                package_id="11538",
-                sticker_id="51626494")]
-            line_bot_api.reply_message(event.reply_token, messages)
         # elif event.message.text == "Set email":
         elif event.message.text == "Delete user":
             client.delete(user_key)
@@ -375,13 +372,13 @@ def handle_message(event):
                 event.reply_token,
                 TextSendMessage(text="User deleted"))
         else:
-            messages = []
-            torch_message = torchBot(event.message.text)
-            messages.append(TextSendMessage(text=torch_message))
-            if "I don't know" in torch_message:
-                messages.append(StickerSendMessage(
-                    package_id="11537",
-                    sticker_id="52002744"))
+            with client.transaction():
+                user["isTeacher"] = False
+                user["previous_message"] = "teacherOff"
+                client.put(user)
+            messages = [TextSendMessage(text="先生モード、OFF"), StickerSendMessage(
+                package_id="11538",
+                sticker_id="51626494")]
             line_bot_api.reply_message(event.reply_token, messages)
     else:
         messages = []
