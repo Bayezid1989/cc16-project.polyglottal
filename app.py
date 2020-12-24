@@ -289,6 +289,8 @@ def handle_message(event):
                     "category": action["category"],
                     "when": action["when"],
                     "reason": action["reason"],
+                    "registerd_date": str(datetime.date.today()),
+                    "timestamp": event.timestamp,
                 }
             )
             client.put(sentAction)
@@ -329,12 +331,19 @@ def handle_message(event):
                 child_name = result["child_name"]
                 grade = result["grade"]
                 classroom = result["classroom"]
-                timestamp = result["timestamp"]
+                time = datetime.datetime.fromtimestamp(
+                    result["timestamp"] / 1e3)
                 messages.append(TextSendMessage(
-                    text=f"名前：{child_name}、{grade}年 {classroom}組、Is English?:{isEnglish}、先生モード: {isTeacher}、登録timestamp: {timestamp}"))
+                    text=f"名前：{child_name}、{grade}年 {classroom}組、Is English?:{isEnglish}、先生モード: {isTeacher}、登録日時: {time}"))
             line_bot_api.reply_message(event.reply_token, messages)
-        if event.message.text == "See actions":
+        elif "See actions" in event.message.text:
             query = client.query(kind="SentActionKind")
+            if "today" in event.message.text:
+                query.add_filter("registerd_date", "=",
+                                 str(datetime.date.today()))
+            elif "yesterday" in event.message.text:
+                query.add_filter("registerd_date", "=",
+                                 str(datetime.date.today() - datetime.timedelta(days=1)))
             results = list(query.fetch())
             messages = []
             for result in results:
@@ -344,8 +353,10 @@ def handle_message(event):
                 category = result["category"]
                 when = result["when"]
                 reason = result["reason"]
+                time = datetime.datetime.fromtimestamp(
+                    result["timestamp"] / 1e3)
                 messages.append(TextSendMessage(
-                    text=f"子ども: {child}、{grade}年 {classroom}組、内容：{category}、{when}、{reason}"))
+                    text=f"子ども: {child}、{grade}年 {classroom}組、内容：{category}、{when}、{reason}、登録日時: {time}"))
             line_bot_api.reply_message(event.reply_token, messages)
         elif event.message.text == "Teacher off":
             with client.transaction():
@@ -356,11 +367,17 @@ def handle_message(event):
                 package_id="11538",
                 sticker_id="51626494")]
             line_bot_api.reply_message(event.reply_token, messages)
+        # elif event.message.text == "Set email":
         elif event.message.text == "Delete user":
             client.delete(user_key)
             line_bot_api.reply_message(
                 event.reply_token,
                 TextSendMessage(text="User deleted"))
+        else:
+            messages = [TextSendMessage(text="I don't know."), StickerSendMessage(
+                package_id="11537",
+                sticker_id="52002744")]
+            line_bot_api.reply_message(event.reply_token, messages)
     else:
         messages = [TextSendMessage(text="I don't know."), StickerSendMessage(
             package_id="11537",
