@@ -1,3 +1,6 @@
+import datetime
+import os
+import json
 from flask import Flask, request, abort
 from flask.logging import create_logger
 
@@ -8,15 +11,14 @@ from linebot.exceptions import (
     InvalidSignatureError
 )
 from linebot.models import (
-    MessageEvent, MessageAction, TextMessage, StickerMessage, TextSendMessage, PostbackEvent, QuickReply, QuickReplyButton, PostbackAction, DatetimePickerAction, ConfirmTemplate, TemplateSendMessage, StickerSendMessage
+    MessageEvent, TextMessage, StickerMessage, TextSendMessage, PostbackEvent,
+    QuickReply, PostbackAction, ConfirmTemplate, TemplateSendMessage, StickerSendMessage
 )
 from google.cloud import datastore
-from dotenv import load_dotenv
 import config
-import datetime
-import os
-import json
-import sendEmail
+
+from send_email import send_notice
+from quick_buttons import number_buttons, menu_buttons, proceed_irregular_buttons, teacher_buttons
 from chat import torchBot
 
 app = Flask(__name__)
@@ -24,11 +26,10 @@ log = create_logger(app)
 client = datastore.Client()
 line_bot_api = LineBotApi(config._LINE_TOKEN)
 handler = WebhookHandler(config._LINE_SECRET)
-email_address = config.SEND_EMAIL
 
 
-rich_menu = ["欠席 / Absence", "遅刻 / Tardiness", "早退 / Leave early", "連絡、質問 / Contact, Question", "回答、提出 / Answer, Submit", "その他 / Others"
-             ]
+# rich_menu = ["欠席 / Absence", "遅刻 / Tardiness", "早退 / Leave early",
+# "連絡、質問 / Contact, Question", "回答、提出 / Answer, Submit", "その他 / Others"]
 
 with open('language/japanese.json') as japanese:
     japanese_words = json.load(japanese)
@@ -63,7 +64,7 @@ def handle_message(event):
     user = client.get(user_key)
     action_key = client.key("ActionKind", user_id)
     action = client.get(action_key)
-    if (user is not None) and (user["isEnglish"] == True):
+    if user and (user["isEnglish"] is True):
         words = english_words
     else:
         words = japanese_words
@@ -75,317 +76,103 @@ def handle_message(event):
             "child_name": "",
             "grade": -1,
             "classroom": -1,
-            "previous_message": "register_language",
-            "timestamp": event.timestamp,
+            "createdAt": event.timestamp,
         })
         client.put(user)
-        confirm_template = ConfirmTemplate(text='あなた登録がまだっぽいですね。まずは言語を選んでください。Select your language please.', actions=[
-            MessageAction(label='日本語', text='日本語'),
-            MessageAction(label='English', text='English'),
+        confirm_template = ConfirmTemplate(text="子どもの登録がまだっぽいので、まずは言語を選んでください。Seems like you haven't registered your child yet. Firstly select your language please.", actions=[
+            PostbackAction(label='日本語', data="language_japanese",
+                           display_text='日本語'),
+            PostbackAction(label='English',
+                           data="language_english", display_text='English'),
         ])
         template_message = TemplateSendMessage(
             alt_text='Confirm language', template=confirm_template)
         line_bot_api.reply_message(event.reply_token, template_message)
-
-    elif (user["previous_message"] == "register_language") and (event.message.text in ["日本語", "English"]):
-        if event.message.text == "English":
-            with client.transaction():
-                user["isEnglish"] = True
-                user["previous_message"] = "childName"
-                client.put(user)
-            words = english_words
-        else:
-            with client.transaction():
-                user["previous_message"] = "childName"
-                client.put(user)
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text=words["childName"]))
-    elif user["previous_message"] == "childName":
-        with client.transaction():
-            user["child_name"] = event.message.text
-            user["previous_message"] = "grade"
-            client.put(user)
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(
-                text=words["grade"],
-                quick_reply=QuickReply(
-                    items=[
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label="1", text="1"),
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label="2", text="2"),
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label="3", text="3"),
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label="4", text="4"),
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label="5", text="5"),
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label="6", text="6"),
-                        )
-                    ])))
-    elif (user["previous_message"] == "grade") and (event.message.text in ["1", "2", "3", "4", "5", "6"]):
-        with client.transaction():
-            user["grade"] = int(event.message.text)
-            user["previous_message"] = "classroom"
-            client.put(user)
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(
-                text=words["classroom"],
-                quick_reply=QuickReply(
-                    items=[
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label="1", text="1"),
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label="2", text="2"),
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label="3", text="3"),
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label="4", text="4"),
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label="5", text="5"),
-                        ),
-                    ])))
-    elif (user["previous_message"] == "classroom") and (event.message.text in ["1", "2", "3", "4", "5"]):
-        with client.transaction():
-            user["classroom"] = int(event.message.text)
-            user["previous_message"] = "registerCompleted"
-            client.put(user)
-        messages = [TextSendMessage(text=words["registerCompleted"]), StickerSendMessage(
-            package_id="11537",
-            sticker_id="52002745")]
-        line_bot_api.reply_message(event.reply_token, messages)
-    elif (action is None) and (event.message.text in rich_menu[0:3]):
-        if event.message.text == rich_menu[0]:
-            category = "Absence"
-            choices = ["today", "tomorrow", "chooseDate",
-                       '{"key": "choose_datetime", "value": "absence"}', "date"]
-        elif event.message.text == rich_menu[1]:
-            category = "Tardiness"
-            choices = ["1h", "noon", "chooseDateTime",
-                       '{"key": "choose_datetime", "value": "tardiness"}', "datetime"]
-        else:
-            category = "Leave_early"
-            choices = ["1hLeave", "noonLeave", "chooseDateTime",
-                       '{"key": "choose_datetime", "value": "leave_early"}', "datetime"]
-        action_key = client.key("ActionKind", user_id)
-        action = datastore.Entity(key=action_key)
-        action.update(
-            {
-                "category": category,
-                "when": "",
-                "reason": "",
-                "previous_message": f"proceed{category}"
-            }
-        )
-        client.put(action)
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(
-                text=words[f"proceed{category}"],
-                quick_reply=QuickReply(
-                    items=[
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label=words[choices[0]], text=words[choices[0]]),
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label=words[choices[1]], text=words[choices[1]]),
-                        ),
-                        QuickReplyButton(
-                            action=DatetimePickerAction(
-                                label=words[choices[2]], data=choices[3], mode=choices[4])
-                        ),
-                        QuickReplyButton(
-                            action=MessageAction(
-                                label=words["cancel"], text=words["cancel"]),
-                        ),
-                    ])))
-    elif (action is None) and (event.message.text in rich_menu[3:6]):
-        messages = [TextSendMessage(text=words["underConstruction"]), StickerSendMessage(
-            package_id="11538",
-            sticker_id="51626508")]
-        line_bot_api.reply_message(event.reply_token, messages)
-    elif (action is not None):
-        if "proceed" in action["previous_message"]:
-            if (action["previous_message"] == "proceedAbsence") and (event.message.text in [words["today"], words["tomorrow"]]):
-                target_date = datetime.date.today()
-                if event.message.text == words["tomorrow"]:
-                    target_date = target_date + datetime.timedelta(days=1)
-                with client.transaction():
-                    action["when"] = str(target_date)
-                    action["previous_message"] = "askReason_absence"
-                    client.put(action)
-                line_bot_api.reply_message(
-                    event.reply_token,
-                    TextSendMessage(text=words["askReason"]))
-            elif event.message.text in [words["1h"], words["noon"], words["1hLeave"], words["noonLeave"]]:
-                lower_category = action["category"].lower()
-                with client.transaction():
-                    action["when"] = event.message.text
-                    action["previous_message"] = f"askReason_{lower_category}"
-                    client.put(action)
-                line_bot_api.reply_message(
-                    event.reply_token,
-                    TextSendMessage(text=words["askReason"]))
-            elif event.message.text == words["cancel"]:
-                client.delete(action_key)
-                line_bot_api.reply_message(
-                    event.reply_token,
-                    TextSendMessage(text=words["cancelDone"]))
-            else:
-                client.delete(action_key)
-                messages = [TextSendMessage(text=words["bug"]), StickerSendMessage(
-                    package_id="11538",
-                    sticker_id="51626499")]
-                line_bot_api.reply_message(event.reply_token, messages)
-        elif "askReason" in action["previous_message"]:
-            with client.transaction():
-                action["reason"] = event.message.text
-                action["previous_message"] = "confirmAbsTarLea"
-                client.put(action)
-            confirmAbsTarLea = words["confirmAbsTarLea"]
-            lower_category = action["category"].lower()
-            submitType = words[lower_category]
-            dateTimeKey = words["dateTime"]
-            whenValue = action["when"]
-            reasonKey = words["reason"]
-            reasonValue = action["reason"]
-            confirm_template = ConfirmTemplate(text=f"{confirmAbsTarLea} {submitType} {dateTimeKey}: {whenValue}, {reasonKey}: {reasonValue}", actions=[
-                MessageAction(label=words["yes"], text=words["yes"]),
-                MessageAction(label=words["cancel"], text=words["cancel"]),
-            ])
-            template_message = TemplateSendMessage(
-                alt_text='Confirm', template=confirm_template)
-            line_bot_api.reply_message(event.reply_token, template_message)
-
-        elif (action["previous_message"] == "confirmAbsTarLea") and (event.message.text == words["yes"]):
-            sendEmail.sendAbsence(
-                user["child_name"], user["grade"], user["classroom"], action["category"], action["when"], action["reason"], email_address)
-            sent_action_key = client.key("SentActionKind", event.timestamp)
-            sent_action = datastore.Entity(key=sent_action_key)
-            sent_action.update(
-                {
-                    "child": user["child_name"],
-                    "grade": user["grade"],
-                    "classroom": user["classroom"],
-                    "category": action["category"],
-                    "when": action["when"],
-                    "reason": action["reason"],
-                    "registerd_date": str(datetime.date.today()),
-                    "timestamp": event.timestamp,
-                }
-            )
-            client.put(sent_action)
-            client.delete(action_key)
-            lower_category = action["category"].lower()
-            messages = [TextSendMessage(text=words[f"{lower_category}Sent"]), StickerSendMessage(
-                package_id="11538",
-                sticker_id="51626501")]
-            line_bot_api.reply_message(event.reply_token, messages)
-        elif event.message.text == words["cancel"]:
-            client.delete(action_key)
-            line_bot_api.reply_message(
-                event.reply_token,
-                TextSendMessage(text=words["cancelDone"]))
-        else:
-            client.delete(action_key)
+    elif user["child_name"] == "":
+        if user["classroom"] == -1:
+            client.delete(user_key)
             messages = [TextSendMessage(text=words["bug"]), StickerSendMessage(
                 package_id="11538",
                 sticker_id="51626499")]
             line_bot_api.reply_message(event.reply_token, messages)
+        else:
+            with client.transaction():
+                user["child_name"] = event.message.text
+                client.put(user)
+            messages = [StickerSendMessage(package_id="11537", sticker_id="52002745"),
+                        TextSendMessage(text=words["registerCompleted"],
+                                        quick_reply=QuickReply(items=menu_buttons(words)))]
+            line_bot_api.reply_message(event.reply_token, messages)
+    # elif (action is None) and (event.message.text in rich_menu[3:6]):
+    #     messages = [TextSendMessage(text=words["underConstruction"]), StickerSendMessage(
+    #         package_id="11538",
+    #         sticker_id="51626508")]
+    #     line_bot_api.reply_message(event.reply_token, messages)
+    elif action is not None:
+        print("action is not none in message")
+        if action["when"] == "":
+            client.delete(action_key)
+            messages = [StickerSendMessage(
+                package_id="11538", sticker_id="51626499"),
+                TextSendMessage(text=words["bug"],
+                                quick_reply=QuickReply(items=menu_buttons(words)))]
+            line_bot_api.reply_message(event.reply_token, messages)
+        elif action["reason"] == "":
+            with client.transaction():
+                action["reason"] = event.message.text
+                client.put(action)
+            confirm_submit = words["confirmSubmit"]
+            submit_type = words[action["category"]]
+            date_time = words["dateTime"]
+            when = action["when"]
+            reason_key = words["reason"]
+            reason_value = action["reason"]
+            confirm_template = ConfirmTemplate(text=f"{confirm_submit} {submit_type} {date_time}: {when}, {reason_key}: {reason_value}", actions=[
+                PostbackAction(label=words["yes"], data="submit_yes",
+                               display_text=words["yes"]),
+                PostbackAction(label=words["cancel"], data="action_cancel",
+                               display_text=words["cancel"]),
+            ])
+            template_message = TemplateSendMessage(
+                alt_text='Confirm submit', template=confirm_template)
+            line_bot_api.reply_message(event.reply_token, template_message)
     elif event.message.text == "Teacher on":
         with client.transaction():
             user["isTeacher"] = True
-            user["previous_message"] = "teacherOn"
             client.put(user)
-        messages = [TextSendMessage(text="先生モード、ON"), StickerSendMessage(
-            package_id="11538",
-            sticker_id="51626514")]
+        messages = [StickerSendMessage(
+            package_id="11538", sticker_id="51626514"),
+            TextSendMessage(text=words["teacherMode"] + ": ON",
+                            quick_reply=QuickReply(items=teacher_buttons(words)))]
         line_bot_api.reply_message(event.reply_token, messages)
-    elif user["isTeacher"] == True:
-        if event.message.text == "See users":
-            query = client.query(kind="UserKind")
-            results = list(query.fetch())
-            messages = []
-            for result in results:
-                isEnglish = result["isEnglish"]
-                isTeacher = result["isTeacher"]
-                child_name = result["child_name"]
-                grade = result["grade"]
-                classroom = result["classroom"]
-                time = datetime.datetime.fromtimestamp(
-                    result["timestamp"] / 1e3)
-                messages.append(TextSendMessage(
-                    text=f"名前：{child_name}、{grade}年 {classroom}組、Is English?:{isEnglish}、先生モード: {isTeacher}、登録日時: {time}"))
+    elif user["isTeacher"] is True:
+        config_key = client.key("ConfigKind", "email")
+        configuration = client.get(config_key)
+        if configuration["email"] == "":
+            with client.transaction():
+                configuration["email"] = event.message.text
+                client.put(configuration)
+            messages = [StickerSendMessage(
+                package_id="11537", sticker_id="52002768"),
+                TextSendMessage(text=words["setEmailDone"],
+                                quick_reply=QuickReply(items=teacher_buttons(words)))]
             line_bot_api.reply_message(event.reply_token, messages)
-        elif "See actions" in event.message.text:
-            query = client.query(kind="SentActionKind")
-            if "today" in event.message.text:
-                query.add_filter("registerd_date", "=",
-                                 str(datetime.date.today()))
-            elif "yesterday" in event.message.text:
-                query.add_filter("registerd_date", "=",
-                                 str(datetime.date.today() - datetime.timedelta(days=1)))
-            results = list(query.fetch())
-            messages = []
-            for result in results:
-                child = result["child"]
-                grade = result["grade"]
-                classroom = result["classroom"]
-                category = result["category"]
-                when = result["when"]
-                reason = result["reason"]
-                time = datetime.datetime.fromtimestamp(
-                    result["timestamp"] / 1e3)
-                messages.append(TextSendMessage(
-                    text=f"子ども: {child}、{grade}年 {classroom}組、内容：{category}、{when}、{reason}、登録日時: {time}"))
-            line_bot_api.reply_message(event.reply_token, messages)
-        # elif event.message.text == "Set email":
-        elif event.message.text == "Delete user":
-            client.delete(user_key)
-            line_bot_api.reply_message(
-                event.reply_token,
-                TextSendMessage(text="User deleted"))
         else:
             with client.transaction():
                 user["isTeacher"] = False
-                user["previous_message"] = "teacherOff"
                 client.put(user)
-            messages = [TextSendMessage(text="先生モード、OFF"), StickerSendMessage(
-                package_id="11538",
-                sticker_id="51626494")]
+            messages = [StickerSendMessage(package_id="11538",
+                                           sticker_id="51626494"),
+                        TextSendMessage(text=words["teacherMode"] + ": OFF",
+                                        quick_reply=QuickReply(items=menu_buttons(words)))]
             line_bot_api.reply_message(event.reply_token, messages)
     else:
         messages = []
         torch_message = torchBot(event.message.text)
-        messages.append(TextSendMessage(text=torch_message))
+        messages.append(TextSendMessage(text=torch_message,
+                                        quick_reply=QuickReply(items=menu_buttons(words))))
         if "I don't know" in torch_message:
-            messages.append(StickerSendMessage(
+            messages.insert(0, StickerSendMessage(
                 package_id="11537",
                 sticker_id="52002744"))
         line_bot_api.reply_message(event.reply_token, messages)
@@ -399,22 +186,182 @@ def handle_postback(event):
     user = client.get(user_key)
     action_key = client.key("ActionKind", user_id)
     action = client.get(action_key)
-    if (user is not None) and (user["isEnglish"] == True):
+    if user["isEnglish"] is True:
         words = english_words
     else:
         words = japanese_words
-    if json.loads(event.postback.data)["key"] == "choose_datetime":
-        value = json.loads(event.postback.data)["value"]
-        with client.transaction():
-            if value == "absence":
-                action["when"] = event.postback.params['date']
-            else:
-                action["when"] = event.postback.params['datetime']
-            action["previous_message"] = f"askReason_{value}"
-            client.put(action)
+    if user["child_name"] == "":
+        if "language_" in event.postback.data:
+            if event.postback.data == "language_english":
+                with client.transaction():
+                    user["isEnglish"] = True
+                    client.put(user)
+                words = english_words
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(
+                    text=words["grade"],
+                    quick_reply=QuickReply(
+                        items=number_buttons(6, "grade"))))
+        elif "grade_" in event.postback.data:
+            with client.transaction():
+                user["grade"] = int(event.postback.data[6:7])
+                client.put(user)
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(
+                    text=words["classroom"],
+                    quick_reply=QuickReply(
+                        items=number_buttons(5, "classroom"))))
+        elif "classroom_" in event.postback.data:
+            with client.transaction():
+                user["classroom"] = int(event.postback.data[10:11])
+                client.put(user)
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text=words["childName"]))
+    elif "menu_" in event.postback.data:
+        category = event.postback.data[5:]
+        if category == "absence":
+            choices = ["chooseDate",
+                       "irregular_datetime_absence", "date"]
+        elif category == "tardiness":
+            choices = ["chooseDateTime",
+                       "irregular_datetime_tardiness", "datetime"]
+        elif category == "leave_early":
+            choices = ["chooseDateTime",
+                       "irregular_datetime_leave_early", "datetime"]
+        action_key = client.key("ActionKind", user_id)
+        action = datastore.Entity(key=action_key)
+        action.update(
+            {
+                "category": category,
+                "when": "",
+                "reason": "",
+                "createdAt": event.timestamp,
+            }
+        )
+        client.put(action)
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(text=words["askReason"]))
+            TextSendMessage(
+                text=words[f"proceed_{category}"],
+                quick_reply=QuickReply(
+                    items=proceed_irregular_buttons(words, choices))))
+    elif action is not None:
+        print("action is not none in postback")
+        if "irregular_datetime_" in event.postback.data:
+            with client.transaction():
+                if "absence" in event.postback.data:
+                    action["when"] = event.postback.params['date']
+                else:
+                    action["when"] = event.postback.params['datetime']
+                action["previous_message"] = "askReason"
+                client.put(action)
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text=words["askReason"]))
+        elif event.postback.data == "submit_yes":
+            config_key = client.key("ConfigKind", "email")
+            configuration = client.get(config_key)
+            send_notice(
+                user["child_name"], user["grade"], user["classroom"],
+                action["category"], action["when"], action["reason"],
+                configuration["email"])
+            sent_action_key = client.key("SentActionKind", event.timestamp)
+            sent_action = datastore.Entity(key=sent_action_key)
+            sent_action.update(
+                {
+                    "child": user["child_name"],
+                    "grade": user["grade"],
+                    "classroom": user["classroom"],
+                    "category": action["category"],
+                    "when": action["when"],
+                    "reason": action["reason"],
+                    "registerd_date": str(datetime.date.today()),
+                    "createdAt": event.timestamp,
+                }
+            )
+            client.put(sent_action)
+            client.delete(action_key)
+            messages = [StickerSendMessage(package_id="11538", sticker_id="51626501"),
+                        TextSendMessage(text=words[action["category"] + "Sent"],
+                                        quick_reply=QuickReply(items=menu_buttons(words)))]
+            line_bot_api.reply_message(event.reply_token, messages)
+        elif event.postback.data == "action_cancel":
+            client.delete(action_key)
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text=words["cancelDone"],
+                                quick_reply=QuickReply(items=menu_buttons(words))))
+    elif "teacher_" in event.postback.data:
+        if "seeActions" in event.postback.data:
+            query = client.query(kind="SentActionKind")
+            if event.postback.data == "seeActionsByDate":
+                query.add_filter("registerd_date", "=",
+                                 event.postback.params['date'])
+            results = list(query.fetch())
+            notices = []
+            for result in results:
+                child = result["child"]
+                grade = result["grade"]
+                classroom = result["classroom"]
+                category = result["category"]
+                when = result["when"]
+                reason = result["reason"]
+                time = datetime.datetime.fromtimestamp(
+                    result["createdAt"] / 1e3)
+                notices.append(
+                    f"名前(Name): {child}, {grade}年(Grade), {classroom}組(Classroom), 種類(Category): {category}, 日時(When): {when}, 理由(Reason): {reason}, 登録日時(Registered Time): {time}")
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text='\n\n'.join(notices), quick_reply=QuickReply(
+                    items=teacher_buttons(words))))
+        elif "seeUsers" in event.postback.data:
+            query = client.query(kind="UserKind")
+            results = list(query.fetch())
+            users = []
+            for result in results:
+                is_english = result["isEnglish"]
+                is_teacher = result["isTeacher"]
+                child_name = result["child_name"]
+                grade = result["grade"]
+                classroom = result["classroom"]
+                time = datetime.datetime.fromtimestamp(
+                    result["createdAt"] / 1e3)
+                users.append(
+                    f"名前：{child_name}、{grade}年 {classroom}組、Is English?:{is_english}、先生モード: {is_teacher}、登録日時: {time}")
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text='\n\n'.join(users), quick_reply=QuickReply(
+                    items=teacher_buttons(words))))
+        elif "setEmail" in event.postback.data:
+            config_key = client.key("ConfigKind", "email")
+            configuration = datastore.Entity(key=config_key)
+            configuration.update(
+                {
+                    "email": "",
+                    "createdAt": event.timestamp,
+                }
+            )
+            client.put(configuration)
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text=words["askEmail"]))
+        elif "deleteUser" in event.postback.data:
+            client.delete(user_key)
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text=words["deleteUserDone"]))
+        elif "teacherOff" in event.postback.data:
+            with client.transaction():
+                user["isTeacher"] = False
+                client.put(user)
+            messages = [StickerSendMessage(
+                package_id="11538", sticker_id="51626494"),
+                TextSendMessage(text=words["teacherMode"] + ": OFF",
+                                quick_reply=QuickReply(items=menu_buttons(words)))]
+            line_bot_api.reply_message(event.reply_token, messages)
 
 
 @ handler.add(MessageEvent, message=StickerMessage)

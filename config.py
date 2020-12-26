@@ -9,4 +9,3 @@ _LINE_SECRET = os.getenv('_LINE_SECRET')
 # Email
 EMAIL_USER = os.getenv('MAILJET_USER')
 EMAIL_PASS = os.getenv('MAILJET_PASS')
-SEND_EMAIL = os.getenv('SEND_EMAIL')
