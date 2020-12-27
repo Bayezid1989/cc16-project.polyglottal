@@ -1,3 +1,4 @@
+from chat import torchBot
 import datetime
 import os
 import json
@@ -18,8 +19,7 @@ from google.cloud import datastore
 import config
 
 from send_email import send_notice
-from quick_buttons import number_buttons, menu_buttons, proceed_irregular_buttons, teacher_buttons
-from chat import torchBot
+from quick_buttons import number_buttons, menu_buttons, action_irregular_buttons, action_others_buttons, teacher_buttons
 
 app = Flask(__name__)
 log = create_logger(app)
@@ -27,9 +27,6 @@ client = datastore.Client()
 line_bot_api = LineBotApi(config._LINE_TOKEN)
 handler = WebhookHandler(config._LINE_SECRET)
 
-
-# rich_menu = ["欠席 / Absence", "遅刻 / Tardiness", "早退 / Leave early",
-# "連絡、質問 / Contact, Question", "回答、提出 / Answer, Submit", "その他 / Others"]
 
 with open('language/japanese.json') as japanese:
     japanese_words = json.load(japanese)
@@ -62,7 +59,7 @@ def handle_message(event):
     user_id = event.source.user_id
     user_key = client.key("UserKind", user_id)
     user = client.get(user_key)
-    action_key = client.key("ActionKind", user_id)
+    action_key = client.key("ActionKind", user_id, parent=user_key)
     action = client.get(action_key)
     if user and (user["isEnglish"] is True):
         words = english_words
@@ -71,11 +68,11 @@ def handle_message(event):
     if user is None:
         user = datastore.Entity(key=user_key)
         user.update({
-            "isEnglish": False,
-            "isTeacher": False,
             "child_name": "",
             "grade": -1,
             "classroom": -1,
+            "isEnglish": False,
+            "isTeacher": False,
             "createdAt": event.timestamp,
         })
         client.put(user)
@@ -103,13 +100,7 @@ def handle_message(event):
                         TextSendMessage(text=words["registerCompleted"],
                                         quick_reply=QuickReply(items=menu_buttons(words)))]
             line_bot_api.reply_message(event.reply_token, messages)
-    # elif (action is None) and (event.message.text in rich_menu[3:6]):
-    #     messages = [TextSendMessage(text=words["underConstruction"]), StickerSendMessage(
-    #         package_id="11538",
-    #         sticker_id="51626508")]
-    #     line_bot_api.reply_message(event.reply_token, messages)
-    elif action is not None:
-        print("action is not none in message")
+    elif action:
         if action["when"] == "":
             client.delete(action_key)
             messages = [StickerSendMessage(
@@ -117,18 +108,22 @@ def handle_message(event):
                 TextSendMessage(text=words["bug"],
                                 quick_reply=QuickReply(items=menu_buttons(words)))]
             line_bot_api.reply_message(event.reply_token, messages)
-        elif action["reason"] == "":
+        elif action["description"] == "":
             with client.transaction():
-                action["reason"] = event.message.text
+                action["description"] = event.message.text
                 client.put(action)
             confirm_submit = words["confirmSubmit"]
             submit_type = words[action["category"]]
             date_time = words["dateTime"]
             when = action["when"]
-            reason_key = words["reason"]
-            reason_value = action["reason"]
-            confirm_template = ConfirmTemplate(text=f"{confirm_submit} {submit_type} {date_time}: {when}, {reason_key}: {reason_value}", actions=[
-                PostbackAction(label=words["yes"], data="submit_yes",
+            description_key = words["description"]
+            description_value = action["description"]
+            if when == "NA":
+                message = f"{confirm_submit} {submit_type} {description_key}: {description_value}"
+            else:
+                message = f"{confirm_submit} {submit_type} {date_time}: {when}, {description_key}: {description_value}"
+            confirm_template = ConfirmTemplate(text=message, actions=[
+                PostbackAction(label=words["yes"], data="action_submit_yes",
                                display_text=words["yes"]),
                 PostbackAction(label=words["cancel"], data="action_cancel",
                                display_text=words["cancel"]),
@@ -184,8 +179,6 @@ def handle_postback(event):
     user_id = event.source.user_id
     user_key = client.key("UserKind", user_id)
     user = client.get(user_key)
-    action_key = client.key("ActionKind", user_id)
-    action = client.get(action_key)
     if user["isEnglish"] is True:
         words = english_words
     else:
@@ -222,53 +215,81 @@ def handle_postback(event):
                 TextSendMessage(text=words["childName"]))
     elif "menu_" in event.postback.data:
         category = event.postback.data[5:]
-        if category == "absence":
-            choices = ["chooseDate",
-                       "irregular_datetime_absence", "date"]
-        elif category == "tardiness":
-            choices = ["chooseDateTime",
-                       "irregular_datetime_tardiness", "datetime"]
-        elif category == "leave_early":
-            choices = ["chooseDateTime",
-                       "irregular_datetime_leave_early", "datetime"]
-        action_key = client.key("ActionKind", user_id)
-        action = datastore.Entity(key=action_key)
-        action.update(
-            {
-                "category": category,
-                "when": "",
-                "reason": "",
-                "createdAt": event.timestamp,
-            }
-        )
-        client.put(action)
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(
-                text=words[f"proceed_{category}"],
-                quick_reply=QuickReply(
-                    items=proceed_irregular_buttons(words, choices))))
-    elif action is not None:
-        print("action is not none in postback")
-        if "irregular_datetime_" in event.postback.data:
+        if category == "answerSubmit":
+            messages = [StickerSendMessage(
+                package_id="11538",
+                sticker_id="51626508"),
+                TextSendMessage(text=words["underConstruction"],
+                                quick_reply=QuickReply(items=menu_buttons(words)))]
+            line_bot_api.reply_message(event.reply_token, messages)
+        else:
+            if category == "absence":
+                quick_buttons = action_irregular_buttons(
+                    words, ["chooseDate",
+                            "absence", "date"])
+            elif category == "tardiness":
+                quick_buttons = action_irregular_buttons(
+                    words, ["chooseDateTime",
+                            "tardiness", "datetime"])
+            elif category == "leave_early":
+                quick_buttons = action_irregular_buttons(
+                    words, ["chooseDateTime",
+                            "leave_early", "datetime"])
+            elif category == "contactQuestion":
+                quick_buttons = action_others_buttons(
+                    words, ["contact", "question", "consult"])
+            # elif category == "answerSubmit":
+            #     quick_buttons = action_others_buttons(
+            #         words, ["answer", "fileSubmit"])
+            elif category == "others":
+                quick_buttons = action_others_buttons(
+                    words, ["technical", "others"])
+            action_key = client.key("ActionKind", user_id, parent=user_key)
+            action = datastore.Entity(key=action_key)
+            action.update(
+                {
+                    "category": category,
+                    "when": "",
+                    "description": "",
+                }
+            )
+            client.put(action)
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(
+                    text=words[f"proceed_{category}"],
+                    quick_reply=QuickReply(
+                        items=quick_buttons)))
+    elif "action_" in event.postback.data:
+        action_key = client.key("ActionKind", user_id, parent=user_key)
+        action = client.get(action_key)
+        if "irregular_" in event.postback.data:
             with client.transaction():
                 if "absence" in event.postback.data:
                     action["when"] = event.postback.params['date']
                 else:
                     action["when"] = event.postback.params['datetime']
-                action["previous_message"] = "askReason"
                 client.put(action)
             line_bot_api.reply_message(
                 event.reply_token,
                 TextSendMessage(text=words["askReason"]))
-        elif event.postback.data == "submit_yes":
+        elif "others_" in event.postback.data:
+            with client.transaction():
+                action["category"] = event.postback.data[14:]
+                action["when"] = "NA"
+                client.put(action)
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text=words["askDescription"]))
+        elif event.postback.data == "action_submit_yes":
             config_key = client.key("ConfigKind", "email")
             configuration = client.get(config_key)
             send_notice(
                 user["child_name"], user["grade"], user["classroom"],
-                action["category"], action["when"], action["reason"],
+                action["category"], action["when"], action["description"],
                 configuration["email"])
-            sent_action_key = client.key("SentActionKind", event.timestamp)
+            sent_action_key = client.key(
+                "SentActionKind", event.timestamp, parent=user_key)
             sent_action = datastore.Entity(key=sent_action_key)
             sent_action.update(
                 {
@@ -277,7 +298,7 @@ def handle_postback(event):
                     "classroom": user["classroom"],
                     "category": action["category"],
                     "when": action["when"],
-                    "reason": action["reason"],
+                    "description": action["description"],
                     "registerd_date": str(datetime.date.today()),
                     "createdAt": event.timestamp,
                 }
@@ -297,25 +318,29 @@ def handle_postback(event):
     elif "teacher_" in event.postback.data:
         if "seeActions" in event.postback.data:
             query = client.query(kind="SentActionKind")
-            if event.postback.data == "seeActionsByDate":
+            if event.postback.data == "teacher_seeActionsByDate":
                 query.add_filter("registerd_date", "=",
                                  event.postback.params['date'])
             results = list(query.fetch())
-            notices = []
-            for result in results:
-                child = result["child"]
-                grade = result["grade"]
-                classroom = result["classroom"]
-                category = result["category"]
-                when = result["when"]
-                reason = result["reason"]
-                time = datetime.datetime.fromtimestamp(
-                    result["createdAt"] / 1e3)
-                notices.append(
-                    f"名前(Name): {child}, {grade}年(Grade), {classroom}組(Classroom), 種類(Category): {category}, 日時(When): {when}, 理由(Reason): {reason}, 登録日時(Registered Time): {time}")
+            if results:
+                notices = []
+                for result in results:
+                    child = result["child"]
+                    grade = result["grade"]
+                    classroom = result["classroom"]
+                    category = result["category"]
+                    when = result["when"]
+                    description = result["description"]
+                    time = datetime.datetime.fromtimestamp(
+                        result["createdAt"] / 1e3)
+                    notices.append(
+                        f"名前(Name): {child}, {grade}年(Grade), {classroom}組(Classroom), 種類(Category): {category}, 日時(When): {when}, 理由(Reason): {description}, 登録日時(Created at): {time}")
+                message = '\n\n'.join(notices)
+            else:
+                message = words["noResults"]
             line_bot_api.reply_message(
                 event.reply_token,
-                TextSendMessage(text='\n\n'.join(notices), quick_reply=QuickReply(
+                TextSendMessage(text=message, quick_reply=QuickReply(
                     items=teacher_buttons(words))))
         elif "seeUsers" in event.postback.data:
             query = client.query(kind="UserKind")

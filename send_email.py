@@ -7,13 +7,25 @@ EMAIL_ADDRESS = config.EMAIL_USER
 EMAIL_PASSWORD = config.EMAIL_PASS
 
 
-def send_notice(child_name, grade, classroom, category, when, reason, email_address):
+def send_notice(child_name, grade, classroom, category, when, description, email_address):
     if category == "absence":
         email_category = "欠席"
     elif category == "tardiness":
         email_category = "遅刻"
     elif category == "leave_early":
         email_category = "早退"
+    elif category == "contact":
+        email_category = "連絡"
+    elif category == "question":
+        email_category = "質問"
+    elif category == "consult":
+        email_category = "相談"
+    elif category == "answer":
+        email_category = "回答"
+    elif category == "fileSubmit":
+        email_category = "提出"
+    elif category == "technical":
+        email_category = "このアプリに関する質問"
     else:
         email_category = "No Category"
     msg = EmailMessage()
@@ -340,7 +352,7 @@ def send_notice(child_name, grade, classroom, category, when, reason, email_addr
                       <tr>
                         <td style="padding: 0 2.5em; text-align: center; padding-bottom: 3em;">
                           <div class="text">
-                            <h2>""" + str(email_category) + """連絡です</h2>
+                            <h2>""" + str(email_category) + """がきた！</h2>
                           </div>
                         </td>
                       </tr>
@@ -351,7 +363,7 @@ def send_notice(child_name, grade, classroom, category, when, reason, email_addr
                             <h3 class="name">""" + str(child_name) + """さん</h3>
                             <p class="position for-space">""" + str(grade) + """年 """ + str(classroom) + """組</p>
                             <p class="position for-space">""" + str(email_category) + """日時：""" + str(when) + """</p> 
-                            <p class="position for-space">""" + str(email_category) + """理由：""" + str(reason) + """</p>
+                            <p class="position for-space">""" + str(email_category) + """詳細：""" + str(description) + """</p>
                            </div>
                         </td>
                       </tr>
