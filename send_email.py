@@ -26,6 +26,8 @@ def send_notice(child_name, grade, classroom, category, when, description, email
         email_category = "提出"
     elif category == "technical":
         email_category = "このアプリに関する質問"
+    elif category == "others":
+        email_category = "その他の連絡"
     else:
         email_category = "No Category"
     msg = EmailMessage()
