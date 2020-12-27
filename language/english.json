@@ -37,7 +37,7 @@
     "consultSent": "Your consultation message has been sent! We'll reply within 3 days. In case emergency, please call 045-1234-5678.",
     "answerSent": "Your answer has been sent! Thank you for answering.",
     "fileSent": "Your file has been sent! Thank you for submitting.",
-    "technicalSent": "Your message has been sent! We'll reply within 3 days. In case emergency, please call 045-1234-5678.",
+    "technicalSent": "Your message has been sent! We'll reply within 3 days. In case emergency, please call 045-1234-5678. This app's code is open here, so please check and contribute to this! https://github.com/Bayezid1989/cc16-project.polyglottal",
     "othersSent": "Your message has been sent! Thank you for your contact.",
     "underConstruction": "Sorry, this is under construction now. Can you try other ones?",
     "bug": "Oops! Sorry, something went wrong, and I just canceled. Can you start again?",
