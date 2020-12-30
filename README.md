@@ -31,7 +31,7 @@ Normally the number of kids in 1 class room is about 30 - 40, and homeroom teach
 
 To solve these problems, I tried to create a LINE chatbot that allows parents can send notices of absence, tardiness, leave-early, etc. to teachers. Reason why I chose LINE for the platform is LINE widespreaad in Japan and people are more familiar with that UI than any of other communication tools such as email.
 
-![screen_shot](./images/screen_shot.png)
+![screen_shot](./images/screen_shot.jpg)
 
 ### What you can do
 
