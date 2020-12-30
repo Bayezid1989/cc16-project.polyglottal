@@ -63,13 +63,13 @@ Secret teacher functions --- can be available after typing a secret command "Tea
 
 After sending any of above, a confirmation email will be sent to teachers.
 
-![email]](./images/email.jpg)
+![email]](./images/email_sample.jpg)
 
 ### How to use
 
 you can add れんらくちょう bot (Renrakucho-bot) as your friend in LINE by capturing the QR code below, and soon you'll be able to start.
 
-![qr]](./images/qr.png)
+![qr]](./images/qr_code.png)
 
 Feel free to play aroud with it and give some advice, opinion or questions via other comments function!
 
